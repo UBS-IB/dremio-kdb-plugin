@@ -1,0 +1,29 @@
+#
+# Copyright (C) 2017-2018 Dremio Corporation
+#
+#                         Licensed under the Apache License, Version 2.0 (the "License");
+#                         you may not use this file except in compliance with the License.
+#                         You may obtain a copy of the License at
+#
+#                         http://www.apache.org/licenses/LICENSE-2.0
+#
+#                         Unless required by applicable law or agreed to in writing, software
+#                         distributed under the License is distributed on an "AS IS" BASIS,
+#                         WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#                         See the License for the specific language governing permissions and
+#                         limitations under the License.
+#
+
+{
+  types: [
+    {native: "byte", from: "Byte", major: "Fixed", name:"Byte", check:"MIN_VALUE", shortval:false},
+    {native: "short", from: "Short", major: "Fixed", name:"Short", check:"MIN_VALUE", shortval:false},
+    {native: "int", from: "Int", major: "Fixed", name:"Integer", check:"MIN_VALUE", shortval:true, shortvalname:"Integer"},
+    {native: "long", from: "Long", major: "Fixed", name:"Long", check:"MIN_VALUE", shortval:false},
+    {native: "long", from: "Long", major: "Fixed", name:"Date", check:"MIN_VALUE", shortval:false},
+    {native: "int", from: "Int", major: "Fixed", name:"Minute", check:"MIN_VALUE", shortval:true, shortvalname:"Integer"},
+    {native: "long", from: "Long", major: "Fixed", name:"Timestamp", check:"MIN_VALUE", shortval:false},
+    {native: "int", from: "Int", major: "Fixed", name:"Time", check:"MIN_VALUE", shortval:true, shortvalname:"Integer"},
+    {native: "double", from: "Double", major: "Fixed", name:"Double", check:"NaN", shortval:false},
+  ]
+} 

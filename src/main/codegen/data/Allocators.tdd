@@ -1,0 +1,30 @@
+#
+# Copyright (C) 2017-2018 Dremio Corporation
+#
+#                         Licensed under the Apache License, Version 2.0 (the "License");
+#                         you may not use this file except in compliance with the License.
+#                         You may obtain a copy of the License at
+#
+#                         http://www.apache.org/licenses/LICENSE-2.0
+#
+#                         Unless required by applicable law or agreed to in writing, software
+#                         distributed under the License is distributed on an "AS IS" BASIS,
+#                         WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#                         See the License for the specific language governing permissions and
+#                         limitations under the License.
+#
+
+{
+  types: [
+    {rename:false, from: "Byte", offset: "1", major: "Fixed", native: "byte"},
+    {rename:false, from: "Int", offset: "4", major: "Fixed", native: "int"},
+    {rename:false, from: "Long", offset: "8", major: "Fixed", native: "long"},
+    {rename:false, from: "Double", offset: "5", major: "Fixed", native: "double"},
+    {rename:false, from: "Short", offset: "2", major: "Fixed", native: "short"},
+    {rename:false, from: "Date", to:"Long", offset: "8", major: "Date", import: "java.util.Date", cast:false},
+    {rename:false, from: "Time", to:"Int", offset: "4", major: "Date", import: "java.sql.Time", cast:true, castVal:"int"},
+    {rename:false, from: "Timestamp", to:"Long", offset: "8", major: "Date", import: "java.sql.Timestamp", cast:false},
+    {rename:true, renameVal:"Minute", from: "c.Minute", to:"Long", offset: "4", major: "Date", import: "com.dremio.extras.plugins.kdb.exec.c", cast:false},
+    {rename:true, renameVal:"Timespan", from: "c.Timespan", to:"Long", offset: "8", major: "Date", import: "com.dremio.extras.plugins.kdb.exec.c", cast:false},
+  ]
+} 

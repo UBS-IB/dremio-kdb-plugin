@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+
+    Copyright (C) 2017-2018 Dremio Corporation
+
+                            Licensed under the Apache License, Version 2.0 (the "License");
+                            you may not use this file except in compliance with the License.
+                            You may obtain a copy of the License at
+
+                            http://www.apache.org/licenses/LICENSE-2.0
+
+                            Unless required by applicable law or agreed to in writing, software
+                            distributed under the License is distributed on an "AS IS" BASIS,
+                            WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+                            See the License for the specific language governing permissions and
+                            limitations under the License.
+
+-->
+<!DOCTYPE suppressions PUBLIC
+        "-//Puppy Crawl//DTD Suppressions 1.0//EN"
+        "http://www.puppycrawl.com/dtds/suppressions_1_0.dtd">
+
+<suppressions>
+    <suppress checks="RegexpMultiline" files="c.java"/>
+    <suppress checks="VisibilityModifier" files="c.java"/>
+    <suppress checks="MemberName" files="c.java"/>
+    <suppress checks="InnerAssignment" files="c.java"/>
+    <suppress checks="MethodName" files="c.java"/>
+    <suppress checks="HiddenField" files="c.java"/>
+    <suppress checks="NeedBraces" files="c.java"/>
+    <suppress checks="MissingSwitchDefault" files="c.java"/>
+    <suppress checks="LocalVariableName" files="c.java"/>
+    <suppress checks="EmptyStatement" files="c.java"/>
+    <suppress checks="ImportOrder" files="c.java"/>
+    <suppress checks="ArrayTypeStyle" files="c.java"/>
+    <suppress checks="AvoidStarImport" files="c.java"/>
+    <suppress checks="JavadocType" files="c.java"/>
+</suppressions>
