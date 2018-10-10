@@ -46,8 +46,11 @@ import java.util.Arrays;
 import java.util.Calendar;
 import java.util.TimeZone;
 import java.util.UUID;
+
 import javax.net.ssl.SSLSocket;
 import javax.net.ssl.SSLSocketFactory;
+
+import org.joda.time.DateTime;
 
 /**
  * Connector class for interfacing with a kdb+ process. This class is essentially a serializer/deserializer of java types
@@ -1286,6 +1289,7 @@ public class c {
 
     public static class Month implements Comparable<Month> {
         public int i;
+        private static final DateTime EPOCH = new DateTime(2000, 1, 1, 0, 0);
 
         public Month(int x) {
             i = x;
@@ -1312,13 +1316,14 @@ public class c {
             return i - m.i;
         }
 
-        public int getTime() {
-            return i;
+        public long getTime() {
+            return EPOCH.plusMonths(i).getMillis();
         }
     }
 
     public static class Minute implements Comparable<Minute> {
         public int i;
+        private static final DateTime EPOCH = new DateTime(1970, 1, 1, 0, 0);
 
         public Minute(int x) {
             i = x;
@@ -1345,12 +1350,13 @@ public class c {
         }
 
         public int getTime() {
-            return i;
+            return (int)EPOCH.plusMinutes(i).getMillis();
         }
     }
 
     public static class Second implements Comparable<Second> {
         public int i;
+        private static final DateTime EPOCH = new DateTime(1970, 1, 1, 0, 0);
 
         public Second(int x) {
             i = x;
@@ -1376,13 +1382,14 @@ public class c {
             return i - s.i;
         }
 
-        public int getTime() {
-            return i;
+        public long getTime() {
+            return EPOCH.plusSeconds(i).getMillis();
         }
     }
 
     public static class Timespan implements Comparable<Timespan> {
         public long j;
+        private static final DateTime EPOCH = new DateTime(1970, 1, 1, 0, 0);
 
         public Timespan(long x) {
             j = x;
@@ -1432,7 +1439,7 @@ public class c {
         }
 
         public long getTime() {
-            return j;
+            return (EPOCH.getMillis() * 1000000L + j) / 1000000L;
         }
     }
 

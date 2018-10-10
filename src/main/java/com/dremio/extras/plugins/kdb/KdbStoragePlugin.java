@@ -1,17 +1,17 @@
 /*
- * Copyright (C) 2017-2018 Dremio Corporation
+ * Copyright (C) 2017-2019 UBS Limited
  *
- *                         Licensed under the Apache License, Version 2.0 (the "License");
- *                         you may not use this file except in compliance with the License.
- *                         You may obtain a copy of the License at
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
  *
- *                         http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
- *                         Unless required by applicable law or agreed to in writing, software
- *                         distributed under the License is distributed on an "AS IS" BASIS,
- *                         WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *                         See the License for the specific language governing permissions and
- *                         limitations under the License.
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 package com.dremio.extras.plugins.kdb;
 
@@ -25,6 +25,7 @@ import org.slf4j.LoggerFactory;
 
 import com.dremio.exec.planner.logical.ViewTable;
 import com.dremio.exec.server.SabotContext;
+import com.dremio.exec.store.DatasetRetrievalOptions;
 import com.dremio.exec.store.SchemaConfig;
 import com.dremio.exec.store.StoragePlugin;
 import com.dremio.exec.store.StoragePluginRulesFactory;
@@ -58,13 +59,13 @@ public class KdbStoragePlugin implements StoragePlugin {
         this.name = name;
         int x = 0;
         try {
-            x = Integer.parseInt(kdbConfig.getFetchSize());
+            x = kdbConfig.fetchSize;
         } catch (Throwable t) {
             x = 0;
         }
         this.batchSize = x;
         calciteConnector = new KdbSchema(
-                kdbConfig.getHostname(), Integer.parseInt(kdbConfig.getPort()), kdbConfig.getUsername(), kdbConfig.getPassword());
+                kdbConfig.host, kdbConfig.port, kdbConfig.username, kdbConfig.password);
     }
 
     private void buildDataSets() {
@@ -77,12 +78,6 @@ public class KdbStoragePlugin implements StoragePlugin {
             }
             built = true;
         }
-    }
-
-    @Override
-    public Iterable<SourceTableDefinition> getDatasets(String user, boolean ignoreAuthErrors) throws Exception {
-        buildDataSets();
-        return dataSets;
     }
 
     @Override
@@ -115,9 +110,9 @@ public class KdbStoragePlugin implements StoragePlugin {
     }
 
     @Override
-    public CheckResult checkReadSignature(ByteString key, DatasetConfig datasetConfig) throws Exception {
+    public CheckResult checkReadSignature(ByteString byteString, DatasetConfig datasetConfig, DatasetRetrievalOptions datasetRetrievalOptions) throws Exception {
         NamespaceKey namespaceKey = new NamespaceKey(datasetConfig.getFullPathList());
-        final SourceTableDefinition definition = getDataset(namespaceKey, datasetConfig, true);
+        final SourceTableDefinition definition = getDataset(namespaceKey, datasetConfig, datasetRetrievalOptions);
 
         if (definition == null) {
             return CheckResult.DELETED;
@@ -153,6 +148,21 @@ public class KdbStoragePlugin implements StoragePlugin {
     }
 
     @Override
+    public Iterable<SourceTableDefinition> getDatasets(String s, DatasetRetrievalOptions datasetRetrievalOptions) throws Exception {
+        buildDataSets();
+        return dataSets;
+    }
+
+    @Override
+    public SourceTableDefinition getDataset(NamespaceKey namespaceKey, DatasetConfig datasetConfig, DatasetRetrievalOptions datasetRetrievalOptions) throws Exception {
+        buildDataSets();
+        if (namespaceKey.getPathComponents().size() != 2) {
+            return null;
+        }
+        return setMap.get(namespaceKey.getPathComponents().get(1));
+    }
+
+    @Override
     public boolean containerExists(NamespaceKey key) {
         if (key.size() != 2) {
             return false;
@@ -163,15 +173,6 @@ public class KdbStoragePlugin implements StoragePlugin {
         } catch (Throwable e) {
             return false;
         }
-    }
-
-    @Override
-    public SourceTableDefinition getDataset(NamespaceKey datasetPath, DatasetConfig oldDataset, boolean ignoreAuthErrors) throws Exception {
-        buildDataSets();
-        if (datasetPath.getPathComponents().size() != 2) {
-            return null;
-        }
-        return setMap.get(datasetPath.getPathComponents().get(1));
     }
 
     public KdbSchema getKdbSchema() {

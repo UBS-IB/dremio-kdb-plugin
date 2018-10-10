@@ -1,17 +1,17 @@
 /*
- * Copyright (C) 2017-2018 Dremio Corporation
+ * Copyright (C) 2017-2019 UBS Limited
  *
- *                         Licensed under the Apache License, Version 2.0 (the "License");
- *                         you may not use this file except in compliance with the License.
- *                         You may obtain a copy of the License at
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
  *
- *                         http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
- *                         Unless required by applicable law or agreed to in writing, software
- *                         distributed under the License is distributed on an "AS IS" BASIS,
- *                         WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *                         See the License for the specific language governing permissions and
- *                         limitations under the License.
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 package com.dremio.extras.plugins.kdb.exec;
 
@@ -29,6 +29,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.dremio.common.expression.SchemaPath;
+import com.dremio.extras.plugins.kdb.exec.writers.ArrowWriter;
 import com.dremio.extras.plugins.kdb.exec.writers.WriterBuilder;
 import com.google.common.annotations.VisibleForTesting;
 
@@ -126,7 +127,11 @@ public class KdbReader {
         StringWriter writer = new StringWriter();
         PrintWriter printWriter = new PrintWriter(writer);
         this.t.printStackTrace(printWriter);
-        return printWriter.toString();
+        return writer.toString();
+    }
+
+    public Throwable getThrowable() {
+        return t;
     }
 
     @VisibleForTesting
@@ -135,7 +140,8 @@ public class KdbReader {
         for (int i = 0; i < resultSet.y.length; i++) {
             String name = resultSet.x[i].replace("xx_xx", "$");
             Object val = resultSet.y[i];
-            dataSize = WriterBuilder.build(fields.get(name), vectors.get(name), name, val).write(allocator);
+            ArrowWriter writer = WriterBuilder.build(fields.get(name), vectors.get(name), name, val);
+            dataSize = writer.write(allocator);
         }
         return dataSize;
     }
@@ -174,8 +180,8 @@ public class KdbReader {
             if (count instanceof Integer) {
                 return (int) count;
             }
-        } catch (c.KException | IOException e) {
-            LOGGER.error("Unable to capture count of table .temp._" + uuid);
+        } catch (IOException e) {
+            LOGGER.error("Unable to capture count of table .temp._" + uuid, e);
             return 0;
         }
         return 0;

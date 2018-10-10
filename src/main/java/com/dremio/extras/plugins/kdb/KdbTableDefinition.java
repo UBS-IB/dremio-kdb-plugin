@@ -1,17 +1,17 @@
 /*
- * Copyright (C) 2017-2018 Dremio Corporation
+ * Copyright (C) 2017-2019 UBS Limited
  *
- *                         Licensed under the Apache License, Version 2.0 (the "License");
- *                         you may not use this file except in compliance with the License.
- *                         You may obtain a copy of the License at
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
  *
- *                         http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
- *                         Unless required by applicable law or agreed to in writing, software
- *                         distributed under the License is distributed on an "AS IS" BASIS,
- *                         WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *                         See the License for the specific language governing permissions and
- *                         limitations under the License.
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 package com.dremio.extras.plugins.kdb;
 
@@ -28,6 +28,8 @@ import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactoryImpl;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.sql.type.SqlTypeName;
+import org.apache.calcite.util.Pair;
+import org.codehaus.jackson.map.ObjectMapper;
 
 import com.dremio.exec.planner.cost.ScanCostFactor;
 import com.dremio.exec.record.BatchSchema;
@@ -54,6 +56,7 @@ import io.protostuff.ByteString;
  * kdb table
  */
 public class KdbTableDefinition implements SourceTableDefinition {
+    private static final ObjectMapper MAPPER = new ObjectMapper();
     private final NamespaceKey key;
     private final String name;
     private final String tableName;
@@ -99,9 +102,10 @@ public class KdbTableDefinition implements SourceTableDefinition {
         built = true;
     }
 
-    private BatchSchema getSchema() throws SQLException {
+    private Pair<BatchSchema, List<String>> getSchema() throws SQLException {
         SchemaBuilder builder = BatchSchema.newBuilder();
         KdbTable table = connection.getTable(tableName);
+        List<String> symbolList = Lists.newArrayList();
         RelDataType rowType = table.getRowType(new JavaTypeFactoryImpl());
         for (String col : rowType.getFieldNames()) {
             RelDataTypeField field = rowType.getField(col, false, false);
@@ -113,11 +117,14 @@ public class KdbTableDefinition implements SourceTableDefinition {
             } else {
                 SqlTypeName typeName = field.getValue().getSqlTypeName();
                 arrowField = KdbSchemaConverter.getArrowFieldFromJdbcType(col, typeName);
+                if (SqlTypeName.SYMBOL.equals(typeName)) {
+                    symbolList.add(col);
+                }
             }
 
             builder.addField(arrowField);
         }
-        return builder.build();
+        return Pair.of(builder.build(), symbolList);
     }
 
     private void populate() throws Exception {
@@ -129,10 +136,18 @@ public class KdbTableDefinition implements SourceTableDefinition {
                 .setType(DatasetType.PHYSICAL_DATASET)
                 .setName(name);
         dataset.setReadDefinition(new ReadDefinition());
-        BatchSchema schema = getSchema();
+        Pair<BatchSchema, List<String>> schemaList = getSchema();
+        BatchSchema schema = schemaList.left;
 
         dataset.setRecordSchema(schema.toByteString());
 
+        KdbXattr xattr = new KdbXattr();
+        xattr.symbolList = schemaList.right;
+        xattr.version = version();
+        xattr.isPartitioned = isPartitioned();
+        if (xattr.isPartitioned) {
+            xattr.partitionColumn = "date"; //todo
+        }
 
         List<String> partitions = partitionColumns();
         dataset.setReadDefinition(new ReadDefinition()
@@ -140,7 +155,7 @@ public class KdbTableDefinition implements SourceTableDefinition {
                 .setSortColumnsList(sortedColumns())
                 .setLastRefreshDate(System.currentTimeMillis())
                 .setReadSignature(null)
-                .setExtendedProperty(ByteString.copyFrom(("{\"version\":" + Double.toString(version()) + "}").getBytes()))
+                .setExtendedProperty(ByteString.copyFrom(MAPPER.writeValueAsString(xattr).getBytes()))
                 .setScanStats(new ScanStats()
                         .setRecordCount(1000L)//todo
                         .setType(ScanStatsType.NO_EXACT_ROW_COUNT)
@@ -168,6 +183,15 @@ public class KdbTableDefinition implements SourceTableDefinition {
             return version;
         } catch (IOException | c.KException e) {
             return -1;
+        }
+    }
+
+    private boolean isPartitioned() {
+        try {
+            boolean version = connection.getPartitioned(tableName);
+            return version;
+        } catch (IOException | c.KException e) {
+            return false;
         }
     }
 
@@ -207,6 +231,61 @@ public class KdbTableDefinition implements SourceTableDefinition {
     public List<DatasetSplit> getSplits() throws Exception {
         buildIfNecessary();
         return splits;
+    }
+
+    /**
+     * extra attributes for kdb
+     */
+    public static class KdbXattr {
+        private double version;
+        private boolean isPartitioned;
+        private boolean isSplayed;
+        private String partitionColumn;
+        private List<String> symbolList = Lists.newArrayList();
+
+        public KdbXattr() {
+
+        }
+
+        public double getVersion() {
+            return version;
+        }
+
+        public void setVersion(double version) {
+            this.version = version;
+        }
+
+        public boolean isPartitioned() {
+            return isPartitioned;
+        }
+
+        public void setPartitioned(boolean partitioned) {
+            isPartitioned = partitioned;
+        }
+
+        public boolean isSplayed() {
+            return isSplayed;
+        }
+
+        public void setSplayed(boolean splayed) {
+            isSplayed = splayed;
+        }
+
+        public String getPartitionColumn() {
+            return partitionColumn;
+        }
+
+        public void setPartitionColumn(String partitionColumn) {
+            this.partitionColumn = partitionColumn;
+        }
+
+        public List<String> getSymbolList() {
+            return symbolList;
+        }
+
+        public void setSymbolList(List<String> symbolList) {
+            this.symbolList = symbolList;
+        }
     }
 
 }

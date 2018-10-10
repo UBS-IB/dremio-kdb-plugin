@@ -36,3 +36,6 @@ plugins/hive/metastore_db/*
 .externalToolBuilders*
 .vscode
 .indexing
+clientspot.dat
+src/test/resources/q/
+src/test/resources/q/*

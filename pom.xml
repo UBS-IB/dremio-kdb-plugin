@@ -1,19 +1,19 @@
 <?xml version="1.0"?>
 <!--
 
-    Copyright (C) 2017-2018 Dremio Corporation
+    Copyright (C) 2017-2019 UBS Limited
 
-                            Licensed under the Apache License, Version 2.0 (the "License");
-                            you may not use this file except in compliance with the License.
-                            You may obtain a copy of the License at
+    Licensed under the Apache License, Version 2.0 (the "License");
+    you may not use this file except in compliance with the License.
+    You may obtain a copy of the License at
 
-                            http://www.apache.org/licenses/LICENSE-2.0
+    http://www.apache.org/licenses/LICENSE-2.0
 
-                            Unless required by applicable law or agreed to in writing, software
-                            distributed under the License is distributed on an "AS IS" BASIS,
-                            WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-                            See the License for the specific language governing permissions and
-                            limitations under the License.
+    Unless required by applicable law or agreed to in writing, software
+    distributed under the License is distributed on an "AS IS" BASIS,
+    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+    See the License for the specific language governing permissions and
+    limitations under the License.
 
 -->
 <project
@@ -23,7 +23,7 @@
     <parent>
         <artifactId>dremio-plugin-parent</artifactId>
         <groupId>com.dremio.plugin</groupId>
-        <version>2.1.6-201809161906440178-edb5b4d</version>
+        <version>3.1.7-201903210426240688-c843b51</version>
     </parent>
 
     <artifactId>dremio-extras-plugin-kdb</artifactId>
@@ -51,26 +51,26 @@
                 <version>3.0</version>
                 <configuration>
                     <inlineHeader>
-                        Copyright (C) ${project.inceptionYear} ${owner}
+Copyright (C) ${project.inceptionYear} ${owner}
 
-                        Licensed under the Apache License, Version 2.0 (the "License");
-                        you may not use this file except in compliance with the License.
-                        You may obtain a copy of the License at
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
 
-                        http://www.apache.org/licenses/LICENSE-2.0
+http://www.apache.org/licenses/LICENSE-2.0
 
-                        Unless required by applicable law or agreed to in writing, software
-                        distributed under the License is distributed on an "AS IS" BASIS,
-                        WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-                        See the License for the specific language governing permissions and
-                        limitations under the License.
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
                     </inlineHeader>
                     <properties>
-                        <owner>Dremio Corporation</owner>
-                        <project.inceptionYear>2017-2018</project.inceptionYear>
+                        <owner>UBS Limited</owner>
+                        <project.inceptionYear>2017-2019</project.inceptionYear>
                     </properties>
                     <project>
-                        <inceptionYear>2017-2018</inceptionYear>
+                        <inceptionYear>2017-2019</inceptionYear>
                     </project>
                     <failIfUnknown>true</failIfUnknown>
                     <useDefaultExcludes>false</useDefaultExcludes>
@@ -181,6 +181,7 @@
                         <exclude>**/*.docx</exclude>
                         <exclude>**/*.ppt</exclude>
                         <exclude>**/*.pptx</exclude>
+                        <exclude>**/*.patch</exclude>
                         <!-- end default excludes -->
 
                         <!-- by file extension -->
@@ -194,6 +195,7 @@
                         <exclude>**/*.gzip</exclude>
                         <exclude>**/*.k</exclude>
                         <exclude>**/*.q</exclude>
+                        <exclude>**/*.dat</exclude>
 
                         <!-- by file name -->
                         <exclude>**/Jenkinsfile</exclude>
@@ -213,6 +215,7 @@
                         <!-- by directory name -->
                         <exclude>**/node_modules/**</exclude>
                         <exclude>**/.idea/**</exclude>
+                        <exclude>**/db/**</exclude>
                     </excludes>
                     <mapping>
                         <java>SLASHSTAR_STYLE</java>

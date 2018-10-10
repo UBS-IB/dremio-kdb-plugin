@@ -1,17 +1,17 @@
 /*
- * Copyright (C) 2017-2018 Dremio Corporation
+ * Copyright (C) 2017-2019 UBS Limited
  *
- *                         Licensed under the Apache License, Version 2.0 (the "License");
- *                         you may not use this file except in compliance with the License.
- *                         You may obtain a copy of the License at
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
  *
- *                         http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
- *                         Unless required by applicable law or agreed to in writing, software
- *                         distributed under the License is distributed on an "AS IS" BASIS,
- *                         WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *                         See the License for the specific language governing permissions and
- *                         limitations under the License.
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 package com.dremio.extras.plugins.kdb.exec;
 
@@ -112,7 +112,7 @@ public final class FlipMaker {
                     retVal[0] = new Date[1000];
                     int i = 0;
                     while (i < 1000) {
-                        ((Date[]) retVal[0])[i] = new Date(i);
+                        ((Date[]) retVal[0])[i] = new Date(new Date(2019 - 1900, 0, 1).getTime() + i * 10000);
                         i++;
                     }
                     return retVal;
@@ -131,7 +131,7 @@ public final class FlipMaker {
                     retVal[0] = new Time[1000];
                     int i = 0;
                     while (i < 1000) {
-                        ((Time[]) retVal[0])[i] = new Time(i);
+                        ((Time[]) retVal[0])[i] = new Time(new Date(2019 - 1900, 0, 1).getTime() + i * 10000);
                         i++;
                     }
                     return retVal;
@@ -142,7 +142,7 @@ public final class FlipMaker {
                     retVal[0] = new c.Minute[1000];
                     int i = 0;
                     while (i < 1000) {
-                        ((c.Minute[]) retVal[0])[i] = new c.Minute(i);
+                        ((c.Minute[]) retVal[0])[i] = new c.Minute(i * 60);
                         i++;
                     }
                     return retVal;
@@ -160,7 +160,7 @@ public final class FlipMaker {
                     retVal[0] = new Timestamp[1000];
                     int i = 0;
                     while (i < 1000) {
-                        ((Timestamp[]) retVal[0])[i] = new Timestamp(i);
+                        ((Timestamp[]) retVal[0])[i] = new Timestamp(new Timestamp(2019 - 1900, 0, 1, 0, 0, 0, 0).getTime() + i * 10000);
                         i++;
                     }
                     return retVal;

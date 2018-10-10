@@ -1,21 +1,22 @@
 /*
- * Copyright (C) 2017-2018 Dremio Corporation
+ * Copyright (C) 2017-2019 UBS Limited
  *
- *                         Licensed under the Apache License, Version 2.0 (the "License");
- *                         you may not use this file except in compliance with the License.
- *                         You may obtain a copy of the License at
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
  *
- *                         http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
- *                         Unless required by applicable law or agreed to in writing, software
- *                         distributed under the License is distributed on an "AS IS" BASIS,
- *                         WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *                         See the License for the specific language governing permissions and
- *                         limitations under the License.
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 package com.dremio.extras.plugins.kdb;
 
 import java.io.IOException;
+import java.net.URISyntaxException;
 import java.net.URL;
 import java.util.List;
 
@@ -30,8 +31,6 @@ import com.dremio.exec.store.CatalogService;
 import com.dremio.sabot.rpc.user.QueryDataBatch;
 import com.dremio.service.namespace.source.proto.SourceConfig;
 
-import static com.dremio.extras.plugins.kdb.KdbInitUtil.getKdbProcess;
-import static com.dremio.extras.plugins.kdb.KdbInitUtil.loadKdbProcess;
 
 /**
  * build q executable and load w/ initial data
@@ -47,7 +46,9 @@ public class QController extends BaseTestQuery {
         self = new QController();
         self.start();
 
-        storagePluginConfig = new KdbStoragePluginConfig(null, null, "localhost", "1234", "0");
+        storagePluginConfig = new KdbStoragePluginConfig();
+        storagePluginConfig.host = "localhost";
+        storagePluginConfig.port = 1234;
         SourceConfig sc = new SourceConfig();
         sc.setName("kdb");
         sc.setConnectionConf(storagePluginConfig);
@@ -61,13 +62,17 @@ public class QController extends BaseTestQuery {
         self.stop();
     }
 
-    public void start() throws IOException, c.KException {
+    public void start() throws IOException, c.KException, URISyntaxException {
         String os = (System.getProperty("os.name").contains("indow")) ? "w32" : "l32";
         URL qExecutable = QController.class.getClassLoader().getResource("q/" + os + "/q" + (("w32".equals(os)) ? ".exe" : ""));
         URL qHome = QController.class.getClassLoader().getResource("q");
 
-        this.process = getKdbProcess(os, qExecutable, qHome);
-        init();
+        this.process = KdbInitUtil.getKdbProcess(os, qExecutable, qHome);
+        try {
+            Thread.sleep(1000);
+        } catch (InterruptedException e) {
+        }
+        init(os, qHome);
     }
 
     public long count(String query) {
@@ -86,9 +91,9 @@ public class QController extends BaseTestQuery {
         }
     }
 
-    private void init() throws IOException, c.KException {
+    private void init(String os, URL qHome) throws IOException, c.KException, URISyntaxException {
         c c = new c("localhost", 1234);
-        loadKdbProcess(c);
+        KdbInitUtil.loadKdbProcess(c, os, qHome);
     }
 
     public void stop() {

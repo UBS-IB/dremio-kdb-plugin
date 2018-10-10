@@ -1,17 +1,17 @@
 /*
- * Copyright (C) 2017-2018 Dremio Corporation
+ * Copyright (C) 2017-2019 UBS Limited
  *
- *                         Licensed under the Apache License, Version 2.0 (the "License");
- *                         you may not use this file except in compliance with the License.
- *                         You may obtain a copy of the License at
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
  *
- *                         http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
- *                         Unless required by applicable law or agreed to in writing, software
- *                         distributed under the License is distributed on an "AS IS" BASIS,
- *                         WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *                         See the License for the specific language governing permissions and
- *                         limitations under the License.
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 package com.dremio.extras.plugins.kdb.exec;
 
@@ -39,19 +39,19 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
 
 /**
- * Table based on a MongoDB collection.
+ * Table based on a kdb table.
  */
 public class KdbTable extends AbstractTable
         implements TranslatableTable {
     private static final Map<Character, SqlTypeName> ALL_TYPES = ImmutableMap.<Character, SqlTypeName>builder()
             .put('t', SqlTypeName.TIME)
-            .put('s', SqlTypeName.CHAR)
+            .put('s', SqlTypeName.SYMBOL)
             .put('i', SqlTypeName.INTEGER)
             .put('f', SqlTypeName.DOUBLE)
             .put('j', SqlTypeName.BIGINT)
-            .put('C', SqlTypeName.CHAR)
+            .put('C', SqlTypeName.VARCHAR)
 //            .put('', SqlTypeName.CHAR)
-            .put(' ', SqlTypeName.CHAR)
+            .put(' ', SqlTypeName.VARCHAR)
             .put('p', SqlTypeName.TIMESTAMP)
             .put('n', SqlTypeName.TIMESTAMP)
             .put('d', SqlTypeName.DATE)
@@ -60,7 +60,7 @@ public class KdbTable extends AbstractTable
             .put('x', /*actually a byte but dremio doesn't support */ SqlTypeName.INTEGER)
             .put('b', SqlTypeName.BOOLEAN)
             .put('e', SqlTypeName.FLOAT)
-            .put('c', SqlTypeName.CHAR)
+            .put('c', SqlTypeName.VARCHAR)
 //    .put('I', SqlTypeName.ARRAY)
 //    .put('F', SqlTypeName.ARRAY)
 //    .put('H', SqlTypeName.ARRAY)

@@ -1,20 +1,21 @@
 /*
- * Copyright (C) 2017-2018 Dremio Corporation
+ * Copyright (C) 2017-2019 UBS Limited
  *
- *                         Licensed under the Apache License, Version 2.0 (the "License");
- *                         you may not use this file except in compliance with the License.
- *                         You may obtain a copy of the License at
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
  *
- *                         http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
- *                         Unless required by applicable law or agreed to in writing, software
- *                         distributed under the License is distributed on an "AS IS" BASIS,
- *                         WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *                         See the License for the specific language governing permissions and
- *                         limitations under the License.
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 package com.dremio.extras.plugins.kdb.rels.translate;
 
+import java.io.IOException;
 import java.util.AbstractList;
 import java.util.ArrayList;
 import java.util.List;
@@ -27,7 +28,11 @@ import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.fun.SqlSumAggFunction;
 import org.apache.calcite.sql.fun.SqlSumEmptyIsZeroAggFunction;
 import org.apache.calcite.sql.validate.SqlValidatorUtil;
+import org.codehaus.jackson.map.ObjectMapper;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
+import com.dremio.extras.plugins.kdb.KdbTableDefinition;
 import com.dremio.extras.plugins.kdb.rels.KdbAggregate;
 import com.dremio.extras.plugins.kdb.rels.KdbPrel;
 import com.dremio.service.namespace.dataset.proto.ReadDefinition;
@@ -38,7 +43,8 @@ import com.google.common.collect.Lists;
  * translate aggs
  */
 public class TranslateAgg implements Translate {
-
+    private static final ObjectMapper MAPPER = new ObjectMapper();
+    private static final Logger LOGGER = LoggerFactory.getLogger(KdbAggregate.class);
     private final double version;
     private final List<KdbAggregate> aggs = Lists.newArrayList();
     private List<KdbColumn> finalProjectedColumns = Lists.newArrayList();
@@ -47,7 +53,14 @@ public class TranslateAgg implements Translate {
     public TranslateAgg(
             List<KdbPrel> stack, ReadDefinition readDefinition) {
         String versionStr = readDefinition.getExtendedProperty().toStringUtf8();
-        version = Double.parseDouble(versionStr.split(":")[1].replace("}", ""));
+        double versionTmp = -1;
+        try {
+            KdbTableDefinition.KdbXattr xattr = MAPPER.reader(KdbTableDefinition.KdbXattr.class).readValue(versionStr);
+            versionTmp = xattr.getVersion();
+        } catch (IOException e) {
+            LOGGER.error("couldn't parse xattr", e);
+        }
+        version = versionTmp;
 
         for (KdbPrel prel : stack) {
             if (prel instanceof KdbAggregate) {
@@ -56,7 +69,7 @@ public class TranslateAgg implements Translate {
         }
     }
 
-    static List<String> mongoFieldNames(final RelDataType rowType) {
+    static List<String> kdbFieldNames(final RelDataType rowType) {
         return SqlValidatorUtil.uniquify(new AbstractList<String>() {
             @Override
             public String get(int index) {
@@ -106,8 +119,8 @@ public class TranslateAgg implements Translate {
         List<KdbColumn> colList = new ArrayList<>();
 
 
-        final List<String> inNames = mongoFieldNames(input.getInput().getRowType());
-        final List<String> outNames = mongoFieldNames(input.getRowType());
+        final List<String> inNames = kdbFieldNames(input.getInput().getRowType());
+        final List<String> outNames = kdbFieldNames(input.getRowType());
         int i = 0;
         List<String> keys = Lists.newArrayList();
         List<KdbColumn> keyCols = Lists.newArrayList();
@@ -132,7 +145,7 @@ public class TranslateAgg implements Translate {
                 k = keys.get(0);
             }
             String outName = outNames.get(i++).replace("$", "xx_xx");
-            String inName = toMongo(aggCall.getAggregation(), inNames, aggCall.getArgList(), k, aggCall.isDistinct());
+            String inName = toKdb(aggCall.getAggregation(), inNames, aggCall.getArgList(), k, aggCall.isDistinct());
             colList.add(
                     new KdbColumn(
                             outName,
@@ -170,9 +183,9 @@ public class TranslateAgg implements Translate {
         return columns;
     }
 
-    private String toMongo(SqlAggFunction aggregation, List<String> inNames, List<Integer> args, String aggField, boolean distinct) {
+    private String toKdb(SqlAggFunction aggregation, List<String> inNames, List<Integer> args, String aggField, boolean distinct) {
         if (aggregation == SqlStdOperatorTable.COUNT) {
-            String agg = distinct ? "count (distinct " : "count ";
+            String agg = distinct ? "count; (distinct " : "count ";
             String castPrefix = (version < 3) ? "($;\"j\";" : "";
             String castSuffix = (version < 3) ? ")" : "";
             if (args.size() == 0) {
@@ -198,6 +211,27 @@ public class TranslateAgg implements Translate {
             assert args.size() == 1;
             final String inName = inNames.get(args.get(0));
             return "(avg;`" + inName + ")";
+        } else if (aggregation == SqlStdOperatorTable.STDDEV_POP) {
+            assert args.size() == 1;
+            final String inName = inNames.get(args.get(0));
+            return "(sdev;`" + inName + ")";
+        } else if (aggregation == SqlStdOperatorTable.STDDEV) {
+            assert args.size() == 1;
+            final String inName = inNames.get(args.get(0));
+            return "(dev;`" + inName + ")";
+        } else if (aggregation == SqlStdOperatorTable.VAR_POP) {
+            assert args.size() == 1;
+            final String inName = inNames.get(args.get(0));
+            return "(svar;`" + inName + ")";
+        } else if (aggregation == SqlStdOperatorTable.VARIANCE) {
+            assert args.size() == 1;
+            final String inName = inNames.get(args.get(0));
+            return "(var;`" + inName + ")";
+        } else if ("CORR".equals(aggregation.getName())) {
+            assert args.size() == 2;
+            final String inName = inNames.get(args.get(0));
+            final String inName2 = inNames.get(args.get(1));
+            return "(cor;`" + inName + ";`" + inName2 + ")";
         } else {
             throw new AssertionError("unknown aggregate " + aggregation);
         }

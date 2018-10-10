@@ -1,22 +1,23 @@
 /*
- * Copyright (C) 2017-2018 Dremio Corporation
+ * Copyright (C) 2017-2019 UBS Limited
  *
- *                         Licensed under the Apache License, Version 2.0 (the "License");
- *                         you may not use this file except in compliance with the License.
- *                         You may obtain a copy of the License at
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
  *
- *                         http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
- *                         Unless required by applicable law or agreed to in writing, software
- *                         distributed under the License is distributed on an "AS IS" BASIS,
- *                         WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *                         See the License for the specific language governing permissions and
- *                         limitations under the License.
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 package com.dremio.extras.plugins.kdb.rels;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.function.Predicate;
 
 import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.plan.RelTraitSet;
@@ -46,7 +47,6 @@ import com.dremio.extras.plugins.kdb.rels.translate.KdbQueryGenerator;
 import com.dremio.extras.plugins.kdb.rels.translate.KdbQueryParameters;
 import com.dremio.service.Pointer;
 import com.google.common.base.Preconditions;
-import com.google.common.base.Predicate;
 
 
 /**
@@ -214,8 +214,8 @@ public class KdbIntermediatePrel extends SinglePrel implements PrelFinalizable, 
         private QueryLog(String kdbQuery, String sqlQuery, KdbStoragePluginConfig config) {
             this.kdbQuery = kdbQuery;
             this.sqlQuery = sqlQuery;
-            String userPass = (config.getUsername() == null || config.getUsername().isEmpty()) ? "" : config.getUsername() + ":***********@";
-            this.connection = userPass + config.getHostname() + ":" + config.getPort();
+            String userPass = (config.username == null || config.username.isEmpty()) ? "" : config.username + ":***********@";
+            this.connection = userPass + config.host + ":" + config.port;
         }
 
         public String getKdbQuery() {

@@ -1,34 +1,44 @@
 /*
- * Copyright (C) 2017-2018 Dremio Corporation
+ * Copyright (C) 2017-2019 UBS Limited
  *
- *                         Licensed under the Apache License, Version 2.0 (the "License");
- *                         you may not use this file except in compliance with the License.
- *                         You may obtain a copy of the License at
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
  *
- *                         http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
- *                         Unless required by applicable law or agreed to in writing, software
- *                         distributed under the License is distributed on an "AS IS" BASIS,
- *                         WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *                         See the License for the specific language governing permissions and
- *                         limitations under the License.
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 package com.dremio.extras.plugins.kdb.rels.translate;
 
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.apache.calcite.plan.RelOptUtil;
+import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.rex.RexShuttle;
+import org.apache.calcite.sql.SqlKind;
+import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.util.Pair;
 
+import com.dremio.exec.planner.types.JavaTypeFactoryImpl;
+import com.dremio.extras.plugins.kdb.KdbTableDefinition;
 import com.dremio.extras.plugins.kdb.rels.KdbFilter;
 import com.dremio.extras.plugins.kdb.rels.KdbPrel;
 import com.dremio.extras.plugins.kdb.rels.RexToKdbColTranslator;
@@ -38,6 +48,7 @@ import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
+import com.google.common.collect.Sets;
 
 /**
  * translate filter
@@ -45,12 +56,14 @@ import com.google.common.collect.Multimap;
 public class TranslateWhere implements Translate {
     private final StringBuffer functionalBuffer;
     private final ReadDefinition readDefinition;
+    private final KdbTableDefinition.KdbXattr xattr;
     private final List<KdbFilter> filters = Lists.newArrayList();
 
-    public TranslateWhere(StringBuffer functionalBuffer, List<KdbPrel> stack, ReadDefinition readDefinition) {
+    public TranslateWhere(StringBuffer functionalBuffer, List<KdbPrel> stack, ReadDefinition readDefinition, KdbTableDefinition.KdbXattr xattr) {
 
         this.functionalBuffer = functionalBuffer;
         this.readDefinition = readDefinition;
+        this.xattr = xattr;
         for (KdbPrel prel : stack) {
             if (prel instanceof KdbFilter) {
                 filters.add((KdbFilter) prel);
@@ -64,7 +77,7 @@ public class TranslateWhere implements Translate {
         }
         if (filters.size() == 1) {
             KdbFilter filter = filters.get(0);
-            String translated = new Translator(TranslateProject.mongoFieldNames(filter.getRowType()), readDefinition).translateMatch(filter.getCondition());
+            String translated = new Translator(TranslateProject.kdbFieldNames(filter.getRowType()), readDefinition, xattr.getSymbolList()).translateMatch(filter.getCondition());
             return translated;
         }
         //todo merge filters??
@@ -78,9 +91,9 @@ public class TranslateWhere implements Translate {
     }
 
     /**
-     * Translates {@link RexNode} expressions into MongoDB expression strings.
+     * Translates {@link RexNode} expressions into kdb expression strings.
      */
-    static class Translator {
+    public static class Translator {
 
         private final Multimap<String, Pair<String, RexLiteral>> multimap =
                 HashMultimap.create();
@@ -88,17 +101,46 @@ public class TranslateWhere implements Translate {
                 new LinkedHashMap<String, RexLiteral>();
         private final List<String> fieldNames;
         private ReadDefinition readDefinition;
+        private final List<String> symbolCols;
 
-        Translator(List<String> fieldNames, ReadDefinition readDefinition) {
+        Translator(List<String> fieldNames, ReadDefinition readDefinition, List<String> symbolCols) {
             this.fieldNames = fieldNames;
             this.readDefinition = readDefinition;
+            this.symbolCols = symbolCols;
         }
 
-        private static Object literalValue(RexLiteral literal) {
+        public static Object literalValue(RexLiteral literal, String... operator) {
             if (literal.getTypeName() == SqlTypeName.CHAR) {
-                return "enlist `" + ((String) literal.getValue2()).replaceAll("'", "");
+                String op = operator.length == 0 ? "" : operator[0];
+
+                if ("like".equals(op)) {
+                    return "enlist \"" + ((String) literal.getValue2())
+                            .replaceAll("'", "")
+                            .replace('%', '*')
+//                            .replace("_","?")
+                            + "\"";
+                } else {
+                    return "enlist `" + ((String) literal.getValue2()).replaceAll("'", "");
+                }
+            } else if (literal.getTypeName() == SqlTypeName.VARCHAR) {
+                String op = operator.length == 0 ? "" : operator[0];
+
+                if ("like".equals(op)) {
+                    return "enlist \"" + ((String) literal.getValue2())
+                            .replaceAll("'", "")
+                            .replace('%', '*')
+//                            .replace("_","?")
+                            + "\"";
+                } else {
+                    return "enlist `" + ((String) literal.getValue2()).replaceAll("'", "");
+                }
             } else if (literal.getTypeName() == SqlTypeName.DECIMAL) {
                 return literal.getValue();
+            } else if (literal.getTypeName() == SqlTypeName.DATE) {
+                DateTimeFormatter format = DateTimeFormatter.ofPattern("YYYY.MM.dd").withZone(ZoneId.of("UTC"));
+                Calendar date = (Calendar) literal.getValue();
+                String dateStr = format.format(date.toInstant());
+                return dateStr;
             }
             return literal.getValue2();
         }
@@ -139,7 +181,7 @@ public class TranslateWhere implements Translate {
             eqMap.clear();
             multimap.clear();
             for (RexNode node : RelOptUtil.conjunctions(node0)) {
-                translateMatch2(node);
+                translateMatch2(node.accept(new RexStringShuttle(symbolCols, fieldNames)));
             }
             Map<String, String> predicates = Maps.newHashMap();
             for (Map.Entry<String, RexLiteral> entry : eqMap.entrySet()) {
@@ -156,13 +198,14 @@ public class TranslateWhere implements Translate {
                     buffer.append(";");
                     buffer.append("`").append(entry.getKey());
                     buffer.append(";");
-                    buffer.append(literalValue(s.right));
+                    buffer.append(literalValue(s.right, s.left));
                     buffer.append(")");
                     predicates.put(entry.getKey(), buffer.toString());
                 }
             }
-            String allPredicates = Joiner.on(";").join(sorted(predicates));
-            return "(" + ((predicates.size() == 1) ? "enlist " : "") + allPredicates + ")";
+            List<String> sortedPredicates = sorted(predicates);
+            String allPredicates = Joiner.on(";").join(sortedPredicates);
+            return "(" + ((sortedPredicates.size() == 1) ? "enlist " : "") + allPredicates + ")";
         }
 
         private List<String> sorted(Map<String, String> predicates) {
@@ -171,7 +214,7 @@ public class TranslateWhere implements Translate {
                 for (String partCol : readDefinition.getPartitionColumnsList()) {
                     String val = predicates.remove(partCol);
                     if (val != null) {
-                        sortedPredicates.add(predicates.get(partCol));
+                        sortedPredicates.add(val);
                     }
                 }
             }
@@ -230,6 +273,8 @@ public class TranslateWhere implements Translate {
                     return translateBinary(">", "<", (RexCall) node);
                 case GREATER_THAN_OR_EQUAL:
                     return translateBinary(">=", "<=", (RexCall) node);
+                case LIKE:
+                    return translateBinary("like", null, (RexCall) node);
                 default:
                     throw new AssertionError("cannot translate " + node);
             }
@@ -293,6 +338,47 @@ public class TranslateWhere implements Translate {
                 // which may later be combined with other conditions:
                 // E.g. {deptno: [$lt: 100, $gt: 50]}
                 multimap.put(name, Pair.of(op, right));
+            }
+        }
+    }
+
+    private static final class RexStringShuttle extends RexShuttle {
+        private static final RexBuilder BUILDER = new RexBuilder(JavaTypeFactoryImpl.INSTANCE);
+        private final Set<String> symbolCols;
+        private final List<String> fieldNames;
+
+        private RexStringShuttle(List<String> symbolCols, List<String> fieldNames) {
+            this.symbolCols = Sets.newHashSet(symbolCols);
+            this.fieldNames = fieldNames;
+        }
+
+        @Override
+        public RexNode visitCall(RexCall call) {
+
+            if (call.getKind() != SqlKind.EQUALS) {
+                return super.visitCall(call);
+            } else {
+                final RexNode left = call.operands.get(0);
+                final RexNode right = call.operands.get(1);
+                boolean isSymbol = false;
+                boolean isVarChar = false;
+                try {
+                    isVarChar |= SqlTypeName.VARCHAR.equals(left.getType().getSqlTypeName());
+                    isSymbol |= symbolCols.contains(fieldNames.get(((RexInputRef) left).getIndex()));
+                } catch (Throwable t) {
+
+                }
+                try {
+                    isVarChar |= SqlTypeName.VARCHAR.equals(right.getType().getSqlTypeName());
+                    isSymbol |= symbolCols.contains(fieldNames.get(((RexInputRef) right).getIndex()));
+                } catch (Throwable t) {
+
+                }
+                if ((!isSymbol && isVarChar) || (left.getType().getSqlTypeName() == SqlTypeName.CHAR &&
+                        right.getType().getSqlTypeName() == SqlTypeName.CHAR)) {
+                    return BUILDER.makeCall(SqlStdOperatorTable.LIKE, left, right);
+                }
+                return super.visitCall(call);
             }
         }
     }

@@ -1,17 +1,17 @@
 /*
- * Copyright (C) 2017-2018 Dremio Corporation
+ * Copyright (C) 2017-2019 UBS Limited
  *
- *                         Licensed under the Apache License, Version 2.0 (the "License");
- *                         you may not use this file except in compliance with the License.
- *                         You may obtain a copy of the License at
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
  *
- *                         http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
- *                         Unless required by applicable law or agreed to in writing, software
- *                         distributed under the License is distributed on an "AS IS" BASIS,
- *                         WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *                         See the License for the specific language governing permissions and
- *                         limitations under the License.
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 package com.dremio.extras.plugins.kdb.exec;
 
@@ -77,6 +77,18 @@ public class KdbConnection {
             c connection = getConn();
             try {
                 Object schema = connection.k("meta " + table);
+                /*
+                The result of meta command looks like:
+
+                c           t       f       a
+                "market"    s       ""      ""
+                "xeUser"    C       ""      ""
+
+                The key column c of the result contains the column names.
+                The column t contains a symbol denoting the type char of the column.
+                The column f contains the domains of any foreign key or link columns.
+                The column a contains any attributes associated with the column.
+                 */
                 schemas.put(table, convert((c.Dict) schema));
             } catch (c.KException e) {
                 e.printStackTrace();
@@ -97,10 +109,44 @@ public class KdbConnection {
         return Triple.of(names, types, attrs);
     }
 
-    public Object select(String source) throws c.KException, IOException {
-        Object results = getConn().k(source);
-        return results;
+    public Object select(String source) throws IOException {
+        try {
+            Object results = getConn().k(source);
+            return results;
+        } catch (c.KException e) {
+            String exception = Errors.ERROR_MAP.getOrDefault(e.getMessage(), e.getMessage());
+            try {
+                String query = source;
+                if (source.contains(".temp.") && source.contains(":(")) {
+                    String[] queryPieces = source.split(":", 2);
+                    query = queryPieces[1].substring(1, queryPieces[1].length() - 1);
+                }
+                Object parse = getConn().k("parse \"" + query + "\"");
+                exception += (" " + getParseString(parse));
+            } catch (Throwable t) {
+                exception += " could not get parse tree";
+            }
+            throw new IOException(exception, e);
+        }
     }
 
+    private static String getParseString(Object parse) {
+        if (parse instanceof String[]) {
+            StringBuilder x = new StringBuilder();
+            for (String s : (String[]) parse) {
+                x.append(" ").append(s);
+            }
+            return x.toString() + "\n";
+        } else if (parse instanceof Object[]) {
+            StringBuilder x = new StringBuilder();
+            for (Object o : (Object[]) parse) {
+                x.append(getParseString(o));
+            }
+            return x.toString() + "\n";
+        } else if (parse instanceof String) {
+            return (String) parse + ", ";
+        }
+        return parse.toString() + ", ";
+    }
 }
 

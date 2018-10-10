@@ -1,17 +1,17 @@
 /*
- * Copyright (C) 2017-2018 Dremio Corporation
+ * Copyright (C) 2017-2019 UBS Limited
  *
- *                         Licensed under the Apache License, Version 2.0 (the "License");
- *                         you may not use this file except in compliance with the License.
- *                         You may obtain a copy of the License at
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
  *
- *                         http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
- *                         Unless required by applicable law or agreed to in writing, software
- *                         distributed under the License is distributed on an "AS IS" BASIS,
- *                         WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *                         See the License for the specific language governing permissions and
- *                         limitations under the License.
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 package com.dremio.extras.plugins.kdb.exec;
 
@@ -176,12 +176,12 @@ public class KdbRecordReader extends AbstractRecordReader {
                 final boolean terminatedEarly = latest.contains(TERMINATED_EARLY);
                 final UserException.Builder builder = UserException.dataReadError();
                 if (timedOut) {
-                    builder.message("Elastic failed with scroll timed out.");
+                    builder.message("Kdb failed with scroll timed out.");
 
                 } else if (terminatedEarly) {
-                    builder.message("Elastic failed with early termination.");
+                    builder.message("Kdb failed with early termination.");
                 } else {
-                    builder.message("Elastic query terminated as Dremio didn't receive as many results as expected.");
+                    builder.message("Kdb query terminated as Dremio didn't receive as many results as expected.");
                 }
 
                 builder.addContext("Query", this.query);

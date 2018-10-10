@@ -1,26 +1,35 @@
 /*
- * Copyright (C) 2017-2018 Dremio Corporation
+ * Copyright (C) 2017-2019 UBS Limited
  *
- *                         Licensed under the Apache License, Version 2.0 (the "License");
- *                         you may not use this file except in compliance with the License.
- *                         You may obtain a copy of the License at
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
  *
- *                         http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
- *                         Unless required by applicable law or agreed to in writing, software
- *                         distributed under the License is distributed on an "AS IS" BASIS,
- *                         WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *                         See the License for the specific language governing permissions and
- *                         limitations under the License.
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 package com.dremio.extras.plugins.kdb.rels.translate;
 
+import java.io.IOException;
 import java.util.List;
 import java.util.Set;
 
 import org.apache.arrow.vector.types.pojo.Field;
 import org.apache.calcite.plan.RelOptCluster;
+import org.apache.calcite.rex.RexCall;
+import org.apache.calcite.rex.RexInputRef;
+import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.rex.RexVisitorImpl;
+import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.util.Pair;
+import org.codehaus.jackson.map.ObjectMapper;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.dremio.common.expression.SchemaPath;
 import com.dremio.exec.expr.fn.FunctionLookupContext;
@@ -28,6 +37,7 @@ import com.dremio.exec.planner.common.MoreRelOptUtil;
 import com.dremio.exec.record.BatchSchema;
 import com.dremio.exec.record.SchemaBuilder;
 import com.dremio.exec.store.TableMetadata;
+import com.dremio.extras.plugins.kdb.KdbTableDefinition;
 import com.dremio.extras.plugins.kdb.rels.KdbAggregate;
 import com.dremio.extras.plugins.kdb.rels.KdbFilter;
 import com.dremio.extras.plugins.kdb.rels.KdbLimit;
@@ -43,6 +53,8 @@ import com.google.common.collect.Sets;
  * generator class to do Prel -> q translation
  */
 public class KdbQueryGenerator {
+    private static final ObjectMapper MAPPER = new ObjectMapper();
+    private static final Logger LOGGER = LoggerFactory.getLogger(KdbQueryGenerator.class);
     private final KdbPrel prel;
     private final List<SchemaPath> projectedColumns;
     private final TableMetadata tableMetadata;
@@ -79,13 +91,19 @@ public class KdbQueryGenerator {
     }
 
     private String generateQuery(KdbQueryParameters parameters) {
+        KdbTableDefinition.KdbXattr xattr = null;
+        try {
+            xattr = MAPPER.reader(KdbTableDefinition.KdbXattr.class).readValue(this.tableMetadata.getReadDefinition().getExtendedProperty().toStringUtf8());
+        } catch (IOException e) {
+            LOGGER.error("unable to extract xattr", e);
+        }
         SimplifyAgg simplifyAgg = new SimplifyAgg(parameters, cluster.getTypeFactory(), tableMetadata.getReadDefinition(), functionLookupContext, cluster);
         parameters = simplifyAgg.go();
         StringBuffer functionalBuffer = new StringBuffer();
         functionalBuffer.append("?[");
         functionalBuffer.append(getTable(parameters));
         functionalBuffer.append(";");
-        functionalBuffer.append(getWhere(parameters));
+        functionalBuffer.append(getWhere(parameters, xattr));
         functionalBuffer.append(";");
         String groupbyStr = getGroupby(parameters);
         Pair<String, String> projectionAggStr = getProjection(parameters, schema, groupbyStr);
@@ -98,7 +116,38 @@ public class KdbQueryGenerator {
         String query = functionalBuffer.toString();
         transformedProjectedColumns = transformProjectedColumns();
         transformedTableMetadata = transformTableMetadata();
-        return query;
+        String valid = isValidQuery(xattr, query, parameters);
+
+        if ("ok".equals(valid)) {
+            return query;
+        } else {
+            LOGGER.warn("Artificially limiting hdb query");
+            return "select from (" + query + ") where i < 10000";
+        }
+
+    }
+
+    private String isValidQuery(KdbTableDefinition.KdbXattr xattr, String query, KdbQueryParameters parameters) {
+
+        if (!xattr.isPartitioned()) {
+            return "ok";
+        }
+        if (parameters.getLimit() != null) {
+            return "ok";
+        }
+        if (parameters.getFilter() != null) {
+            RexNode condition = parameters.getFilter().getCondition();
+            List<String> rows = TranslateProject.kdbFieldNames(parameters.getFilter().getInput().getRowType());
+            RexStringVisitor visitor = new RexStringVisitor(true, rows, xattr.getPartitionColumn());
+            boolean ok = condition.accept(visitor);
+            if (ok) {
+                return "ok";
+            }
+        }
+        if (parameters.getAggregate() != null) {
+            return "ok";
+        }
+        return "No limit clause and not filtering on partition column: " + xattr.getPartitionColumn();
     }
 
     private TableMetadata transformTableMetadata() {
@@ -194,15 +243,51 @@ public class KdbQueryGenerator {
         return aggStr;
     }
 
-    private String getWhere(KdbQueryParameters parameters) {
+    private String getWhere(KdbQueryParameters parameters, KdbTableDefinition.KdbXattr xattr) {
         KdbFilter filter = parameters.getFilter();
         if (filter == null) {
             return "()";
         }
         StringBuffer buffer = new StringBuffer();
-        new TranslateWhere(buffer, ImmutableList.of(filter), tableMetadata.getReadDefinition()).go();
+        new TranslateWhere(buffer, ImmutableList.of(filter), tableMetadata.getReadDefinition(), xattr).go();
         return buffer.toString();
     }
 
+    private static class RexStringVisitor extends RexVisitorImpl<Boolean> {
+        private final List<String> rows;
+        private String partitionColumn;
+
+        protected RexStringVisitor(boolean deep, List<String> rows, String partitionColumn) {
+            super(deep);
+            this.rows = rows;
+            this.partitionColumn = partitionColumn;
+        }
+
+        @Override
+        public Boolean visitCall(RexCall call) {
+
+            if (call.getKind() == SqlKind.EQUALS ||
+                    call.getKind() == SqlKind.GREATER_THAN ||
+                    call.getKind() == SqlKind.LESS_THAN ||
+                    call.getKind() == SqlKind.GREATER_THAN_OR_EQUAL||
+                    call.getKind() == SqlKind.LESS_THAN_OR_EQUAL) {
+                final RexNode left = call.operands.get(0);
+                final RexNode right = call.operands.get(1);
+                Boolean leftOk = left.accept(this);
+                leftOk = (leftOk == null) ? false : leftOk;
+                Boolean rightOk = right.accept(this);
+                rightOk = (rightOk == null) ? false : rightOk;
+                return leftOk || rightOk;
+            } else {
+                return super.visitCall(call);
+            }
+        }
+
+        @Override
+        public Boolean visitInputRef(RexInputRef inputRef) {
+            String col = rows.get(Integer.parseInt(inputRef.getName().replace("$", "")));
+            return col.equals(partitionColumn);
+        }
+    }
 
 }

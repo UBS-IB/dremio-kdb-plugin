@@ -1,17 +1,17 @@
 /*
- * Copyright (C) 2017-2018 Dremio Corporation
+ * Copyright (C) 2017-2019 UBS Limited
  *
- *                         Licensed under the Apache License, Version 2.0 (the "License");
- *                         you may not use this file except in compliance with the License.
- *                         You may obtain a copy of the License at
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
  *
- *                         http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
- *                         Unless required by applicable law or agreed to in writing, software
- *                         distributed under the License is distributed on an "AS IS" BASIS,
- *                         WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *                         See the License for the specific language governing permissions and
- *                         limitations under the License.
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 package com.dremio.extras.plugins.kdb.exec.writers;
 
@@ -54,7 +54,7 @@ public final class ArrowWriterHelper {
             innerCount += builder.getCount();
             innerSize += builder.getSize();
         }
-        UserBitShared.SerializedField vals = getSerializedField(innerSize, innerCount, field, (innerSize < 0) ? val: null, name);
+        UserBitShared.SerializedField vals = getSerializedField(innerSize, innerCount, field, (innerSize < 0) ? val : null, name);
 
         return UserBitShared.SerializedField.newBuilder()
                 .addChild(offsets)
@@ -125,14 +125,14 @@ public final class ArrowWriterHelper {
     }
 
     public static ArrowBuf makeNull(ArrowBuf bitsBuffer, int stop) {
-        return (ArrowBuf)bitsBuffer.setZero(0, stop);
+        return (ArrowBuf) bitsBuffer.setZero(0, stop);
     }
 
     public static UserBitShared.SerializedField getStringSerializedValue(int count, Object val, SchemaPath field) {
         int size;
         UserBitShared.SerializedField.Builder offsetsBuilder = UserBitShared.SerializedField.newBuilder();
-        offsetsBuilder.setBufferLength(count * 4 + 4);
-        offsetsBuilder.setValueCount(count + 1);
+        offsetsBuilder.setBufferLength((count == 0) ? 0 : (count * 4 + 4));
+        offsetsBuilder.setValueCount((count == 0) ? 0 : (count + 1));
         UserBitShared.SerializedField offset = offsetsBuilder.build();
         try {
             size = getStringSize(val);
@@ -141,7 +141,7 @@ public final class ArrowWriterHelper {
         }
         UserBitShared.SerializedField.Builder builder = UserBitShared.SerializedField.newBuilder();
         builder.setNamePart(field.getAsNamePart());
-        builder.setBufferLength(size + (count + 1) * 4);
+        builder.setBufferLength(size + ((count == 0) ? 0 : (count + 1)) * 4);
         builder.setValueCount(count);
         builder.addChild(offset);
         return builder.build();
@@ -158,9 +158,9 @@ public final class ArrowWriterHelper {
             for (char v : ((char[]) val)) {
                 size += Character.toString(v).getBytes("UTF-8").length;
             }
-            return size ;
+            return size;
         } else if (val instanceof Object[]) {
-            for (Object o: ((Object[])val)) {
+            for (Object o : ((Object[]) val)) {
                 size += getStringSize(o);
             }
             return size;
