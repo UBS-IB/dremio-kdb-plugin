@@ -294,14 +294,14 @@ public class KdbAdapterIT extends QController {
     public void testGroupByDate() throws Exception {
         runKdbSQLVerifyCount("SELECT date_trunc('hour', \"time\") as hr, sym, count(*), sum(bidCount), avg(case when offerCount>2 then offerCount else 0 end)  " +
                 "FROM kdb.md " +
-                "group by date_trunc('hour', \"time\"), sym", 26);
+                "group by date_trunc('hour', \"time\"), sym", 25);
     }
 
     @Test
     public void testGroupBySimpleCase() throws Exception {
         runKdbSQLVerifyCount("SELECT sym, sum(case when offerCount>2 then offerCount else 0 end)  " +
                 "FROM kdb.md " +
-                "group by sym", 26);
+                "group by sym", 25);
     }
 
     @Test
@@ -315,6 +315,11 @@ public class KdbAdapterIT extends QController {
         runKdbSQLVerifyCount("SELECT date_trunc('hour', \"time\") as hr, count(*)" +
                 "FROM kdb.md " +
                 "group by date_trunc('hour', \"time\")", 1);
+    }
+
+    @Test
+    public void testArrayOfStrings() throws Exception {
+        runKdbSQLVerifyCount("SELECT waiverFlag FROM kdb.daptrade", 100);
     }
 }
 

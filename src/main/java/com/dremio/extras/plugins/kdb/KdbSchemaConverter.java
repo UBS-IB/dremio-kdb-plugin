@@ -100,6 +100,15 @@ public final class KdbSchemaConverter {
         } else if (clazz.equals(java.sql.Timestamp[].class)) {
             Field child = getArrowFieldFromJdbcType("$data$", SqlTypeName.TIMESTAMP);
             return new Field(col, true, new ArrowType.List(), ImmutableList.of(child));
+        } else if (clazz.equals(Date[].class)) {
+            Field child = getArrowFieldFromJdbcType("$data$", SqlTypeName.DATE);
+            return new Field(col, true, new ArrowType.List(), ImmutableList.of(child));
+        } else if (clazz.equals(boolean[].class)) {
+            Field child = getArrowFieldFromJdbcType("$data$", SqlTypeName.BOOLEAN);
+            return new Field(col, true, new ArrowType.List(), ImmutableList.of(child));
+        } else if (clazz.equals(String[].class)) {
+            Field child = new Field("$data$", true, new Utf8(), null);
+            return new Field(col, true, new ArrowType.List(), ImmutableList.of(child));
         }
         return null;
     }

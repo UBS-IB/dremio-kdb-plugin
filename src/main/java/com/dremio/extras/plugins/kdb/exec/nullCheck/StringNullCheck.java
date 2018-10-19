@@ -30,7 +30,13 @@ public class StringNullCheck implements NullCheck {
     private int[] offsets = null;
 
     public StringNullCheck(UserBitShared.SerializedField serializedField) {
-        offset = serializedField.getChild(1).getChild(0);
+        UserBitShared.SerializedField tmpOffset;
+        try {
+            tmpOffset = serializedField.getChild(1).getChild(0);
+        } catch (Throwable t) {
+            tmpOffset = serializedField.getChild(2).getChild(1).getChild(0);
+        }
+        offset = tmpOffset;
         size = offset.getValueCount();
     }
 

@@ -22,17 +22,17 @@ import io.netty.buffer.ArrowBuf;
 /**
  * helper interface to allocate from kdb->arrow
  */
-public class StringAllocator implements Allocator {
+public class CharAllocator implements Allocator {
     @Override
     public void get(Object o, int size, int count, ArrowBuf buf, ArrowBuf x) throws IOException {
-        if (o instanceof String[]) {
+        if (o instanceof char[]) {
             int byteCount = 4 * count + 4;
             ArrowBuf offsets = buf.slice(0, byteCount).writerIndex(0);
             ArrowBuf data = buf.slice(byteCount, size).writerIndex(0);
             int offset = 0;
             offsets.writeInt(0);
-            for (String s : ((String[]) o)) {
-                byte[] bytes = s.getBytes("UTF-8");
+            for (char s : ((char[]) o)) {
+                byte[] bytes = Character.toString(s).getBytes("UTF-8");
                 int wordLength = bytes.length;
                 offsets.writeInt(wordLength + offset);
                 offset += wordLength;
@@ -45,53 +45,21 @@ public class StringAllocator implements Allocator {
                 ArrowBuf offsets = buf.slice(0, byteCount).writerIndex(0);
                 offsets.writeInt(0);
             } else if (((Object[]) o)[0] instanceof char[]) {
+                Object[] v = (Object[]) o;
                 int byteCount = 4 * count + 4;
                 ArrowBuf offsets = buf.slice(0, byteCount).writerIndex(0);
                 ArrowBuf data = buf.slice(byteCount, size).writerIndex(0);
                 int offset = 0;
                 offsets.writeInt(0);
-                for (Object s : ((Object[]) o)) {
-                    char[] ss = (char[])s;
-                    byte[] bytes = new String(ss).getBytes("UTF-8");
+                x.writeInt(0);
+                for (Object s : v) {
+                    byte[] bytes = new String((char[]) s).getBytes("UTF-8");
                     int wordLength = bytes.length;
                     offsets.writeInt(wordLength + offset);
+                    x.writeInt(wordLength + offset);
                     offset += wordLength;
                     data.writeBytes(bytes);
                 }
-            } else if (((Object[]) o)[0] instanceof String[]) {
-                x.writeInt(buf.writerIndex());
-                int byteCount = 4;
-                for (Object s : ((Object[]) o)) {
-                    for (Object oo: ((Object[])s)) {
-                        byteCount += 4 ;//* Math.max(1,((String)oo).length());
-                    }
-                    if (((Object[])s).length == 0) {
-                        byteCount += 4;
-                    }
-                }
-                ArrowBuf offsets = buf.slice(0, byteCount).writerIndex(0);
-                ArrowBuf data = buf.slice(byteCount, size).writerIndex(0);
-
-                int offset = 0;
-                int totalOffset = 0;
-                offsets.writeInt(0);
-                for (Object s : ((Object[]) o)) {
-                    int totalWordLength = 0;
-                    for (Object oo : ((Object[]) s)) {
-                        byte[] bytes = ((String)oo).getBytes("UTF-8");
-                        int wordLength = bytes.length;
-                        offsets.writeInt(wordLength + offset);
-                        offset += wordLength;
-                        totalWordLength += wordLength;
-                        data.writeBytes(bytes);
-                    }
-                    if (((Object[]) s).length == 0) {
-                        offsets.writeInt(offset);
-                    }
-                    x.writeInt(totalOffset + totalWordLength);
-                    totalOffset += totalWordLength;
-                }
-
             }
         }
     }

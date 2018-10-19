@@ -24,9 +24,12 @@ import com.dremio.extras.plugins.kdb.exec.c;
 import com.dremio.extras.plugins.kdb.exec.gnullCheck.ByteNullCheck;
 import com.dremio.extras.plugins.kdb.exec.gnullCheck.DateNullCheck;
 import com.dremio.extras.plugins.kdb.exec.gnullCheck.DoubleNullCheck;
+import com.dremio.extras.plugins.kdb.exec.gnullCheck.FloatNullCheck;
 import com.dremio.extras.plugins.kdb.exec.gnullCheck.IntegerNullCheck;
 import com.dremio.extras.plugins.kdb.exec.gnullCheck.LongNullCheck;
 import com.dremio.extras.plugins.kdb.exec.gnullCheck.MinuteNullCheck;
+import com.dremio.extras.plugins.kdb.exec.gnullCheck.MonthNullCheck;
+import com.dremio.extras.plugins.kdb.exec.gnullCheck.SecondNullCheck;
 import com.dremio.extras.plugins.kdb.exec.gnullCheck.ShortNullCheck;
 import com.dremio.extras.plugins.kdb.exec.gnullCheck.TimeNullCheck;
 import com.dremio.extras.plugins.kdb.exec.gnullCheck.TimestampNullCheck;
@@ -41,10 +44,14 @@ public final class NullCheckBuilder {
     public static NullCheck build(String name, Object val, UserBitShared.SerializedField serializedField) {
         if (val instanceof double[]) {
             return new DoubleNullCheck();
+        } else if (val instanceof float[]) {
+            return new FloatNullCheck();
         } else if (val instanceof int[]) {
             return new IntegerNullCheck();
         } else if (val instanceof short[]) {
             return new ShortNullCheck();
+        } else if (val instanceof char[]) {
+            return new StringNullCheck(serializedField);
         } else if (val instanceof byte[]) {
             return new ByteNullCheck();
         } else if (val instanceof boolean[]) {
@@ -57,6 +64,10 @@ public final class NullCheckBuilder {
             return new TimestampNullCheck();
         } else if (val instanceof c.Minute[]) {
             return new MinuteNullCheck();
+        } else if (val instanceof c.Month[]) {
+            return new MonthNullCheck();
+        } else if (val instanceof c.Second[]) {
+            return new SecondNullCheck();
         }else if (val instanceof String[]) {
             return new StringNullCheck(serializedField);
         } else if (val instanceof Time[]) {

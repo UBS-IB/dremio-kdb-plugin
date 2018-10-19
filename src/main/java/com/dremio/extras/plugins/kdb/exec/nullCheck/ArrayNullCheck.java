@@ -68,7 +68,7 @@ public class ArrayNullCheck implements NullCheck {
 
         public OffsetBuff(ArrowBuf buf, int offset) {
             this.buf = buf;
-            this.offset = offset;
+            this.offset = Math.abs(offset);
         }
 
         public int read() {

@@ -16,6 +16,7 @@
 
 {
   types: [
+    {rename:true, renameVal:"", from: "Boolean", offset: "1", major: "Fixed", native: "boolean"},
     {rename:false, from: "Byte", offset: "1", major: "Fixed", native: "byte"},
     {rename:false, from: "Int", offset: "4", major: "Fixed", native: "int"},
     {rename:false, from: "Long", offset: "8", major: "Fixed", native: "long"},

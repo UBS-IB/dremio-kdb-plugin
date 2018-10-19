@@ -17,6 +17,7 @@
 data: {
     cast:                     tdd(../data/Allocators.tdd)
     nullcheck:                tdd(../data/NullChecks.tdd)
+    writer:                   tdd(../data/Writers.tdd)
 }
 freemarkerLinks: {
     includes: includes/

@@ -18,7 +18,6 @@ package com.dremio.extras.plugins.kdb;
 import java.io.IOException;
 import java.net.URL;
 import java.util.List;
-import java.util.Map;
 
 import org.junit.AfterClass;
 import org.junit.Assert;
@@ -30,6 +29,9 @@ import com.dremio.exec.exception.SchemaChangeException;
 import com.dremio.exec.store.CatalogService;
 import com.dremio.sabot.rpc.user.QueryDataBatch;
 import com.dremio.service.namespace.source.proto.SourceConfig;
+
+import static com.dremio.extras.plugins.kdb.KdbInitUtil.getKdbProcess;
+import static com.dremio.extras.plugins.kdb.KdbInitUtil.loadKdbProcess;
 
 /**
  * build q executable and load w/ initial data
@@ -64,26 +66,7 @@ public class QController extends BaseTestQuery {
         URL qExecutable = QController.class.getClassLoader().getResource("q/" + os + "/q" + (("w32".equals(os)) ? ".exe" : ""));
         URL qHome = QController.class.getClassLoader().getResource("q");
 
-        ProcessBuilder builder = new ProcessBuilder("dir");
-        Map<String, String> env = builder.environment();
-        if ("w32".equals(os)) {
-            env.put("QHOME", qHome.getFile().replace("/", "\\").replaceFirst("\\\\", ""));
-        } else {
-            env.put("QHOME", qHome.getFile());
-        }
-        String[] envStr = new String[env.size()];
-        int i = 0;
-        for (Map.Entry<String, String> kv : env.entrySet()) {
-            envStr[i++] = (kv.getKey() + "=" + kv.getValue());
-        }
-        String[] cmd;
-        if ("w32".equals(os)) {
-            cmd = new String[]{qExecutable.getFile().replace("/", "\\").replaceFirst("\\\\", ""), "-p", "1234"};
-        } else {
-            cmd = new String[]{qExecutable.getFile(), "-p", "1234"};
-        }
-        Process p = Runtime.getRuntime().exec(cmd, envStr);
-        this.process = p;
+        this.process = getKdbProcess(os, qExecutable, qHome);
         init();
     }
 
@@ -105,10 +88,7 @@ public class QController extends BaseTestQuery {
 
     private void init() throws IOException, c.KException {
         c c = new c("localhost", 1234);
-        c.k("\\l trade.q");
-        c.k("\\l sp.q");
-        c.k("md:`:fxkdbldns4.ldn.swissbank.com:19051:kdbprod:kdbprod \"select[1000] from CURRENEX_stm\"");
-//    c.k("mor:`:fxkdbldns1.ldn.swissbank.com:7061:kdbprod:kdbprod \"select[100] from mortrade\"");
+        loadKdbProcess(c);
     }
 
     public void stop() {

@@ -21,9 +21,12 @@
     {native: "int", from: "Int", major: "Fixed", name:"Integer", check:"MIN_VALUE", shortval:true, shortvalname:"Integer"},
     {native: "long", from: "Long", major: "Fixed", name:"Long", check:"MIN_VALUE", shortval:false},
     {native: "long", from: "Long", major: "Fixed", name:"Date", check:"MIN_VALUE", shortval:false},
-    {native: "int", from: "Int", major: "Fixed", name:"Minute", check:"MIN_VALUE", shortval:true, shortvalname:"Integer"},
+    {native: "long", from: "Long", major: "Fixed", name:"Minute", check:"MIN_VALUE", shortval:false, shortvalname:"Integer"},
+    {native: "long", from: "Long", major: "Fixed", name:"Second", check:"MIN_VALUE", shortval:false, shortvalname:"Integer"},
+    {native: "long", from: "Long", major: "Fixed", name:"Month", check:"MIN_VALUE", shortval:false, shortvalname:"Integer"},
     {native: "long", from: "Long", major: "Fixed", name:"Timestamp", check:"MIN_VALUE", shortval:false},
     {native: "int", from: "Int", major: "Fixed", name:"Time", check:"MIN_VALUE", shortval:true, shortvalname:"Integer"},
     {native: "double", from: "Double", major: "Fixed", name:"Double", check:"NaN", shortval:false},
+    {native: "float", from: "Float", major: "Fixed", name:"Float", check:"NaN", shortval:false},
   ]
 } 

@@ -40,7 +40,7 @@ public class KdbTests extends QController {
     public void testSrt() throws Exception {
         runKdbSQLVerifyCount("select s, sum(qty) from kdb.sp where qty > 100\n"
                         + " group by s order by s limit 4"
-                , 3);
+                , 4);
     }
 
     @Test

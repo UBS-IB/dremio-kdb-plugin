@@ -1311,6 +1311,10 @@ public class c {
         public int compareTo(Month m) {
             return i - m.i;
         }
+
+        public int getTime() {
+            return i;
+        }
     }
 
     public static class Minute implements Comparable<Minute> {
@@ -1370,6 +1374,10 @@ public class c {
         @Override
         public int compareTo(Second s) {
             return i - s.i;
+        }
+
+        public int getTime() {
+            return i;
         }
     }
 

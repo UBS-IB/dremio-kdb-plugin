@@ -35,4 +35,9 @@
     <suppress checks="ArrayTypeStyle" files="c.java"/>
     <suppress checks="AvoidStarImport" files="c.java"/>
     <suppress checks="JavadocType" files="c.java"/>
+    <suppress checks="EqualsAvoidNull" files="FlipMaker.java"/>
+    <suppress checks="MissingSwitchDefault" files="FlipMaker.java"/>
+    <suppress checks="VisibilityModifier" files="KdbReaderTest.java" />
+    <suppress checks="VisibilityModifier" files="KdbArrayReaderTest.java" />
+    <suppress checks="EqualsAvoidNull" files="KdbArrayReaderTest.java" />
 </suppressions>

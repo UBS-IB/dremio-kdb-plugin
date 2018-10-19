@@ -70,6 +70,7 @@ public class KdbRecordReader extends AbstractRecordReader {
         this.stats = context == null ? null : context.getStats();
         this.batchSize = batchSize;
         this.schema = schema;
+
     }
 
     @Override
@@ -215,12 +216,15 @@ public class KdbRecordReader extends AbstractRecordReader {
 
     enum State {INIT, READ, DEPLETED, CLOSED}
 
-    final class VectorGetter implements Provider<ValueVector> {
+    /**
+     * Helper method to cache valuevector
+     */
+    public static final class VectorGetter implements Provider<ValueVector> {
         private final OutputMutator output;
         private final Field f;
         private ValueVector vector = null;
 
-        private VectorGetter(OutputMutator output, Field f) {
+        public VectorGetter(OutputMutator output, Field f) {
             this.output = output;
             this.f = f;
         }
