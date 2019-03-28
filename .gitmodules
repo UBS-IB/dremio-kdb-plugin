@@ -1,3 +1,0 @@
-[submodule "src/test/resources/ubs"]
-	path = src/test/resources/ubs
-	url = git@github.ldn.swissbank.com:AA42557-QUAD-DS/test_kdbconnector_data.git
