@@ -127,7 +127,15 @@ public final class FlipMaker {
                 }
             }
             case Time: {
-                if (typeName.equals("time")) {
+                if (typeName.equals("minute")) {
+                    retVal[0] = new c.Minute[1000];
+                    int i = 0;
+                    while (i < 1000) {
+                        ((c.Minute[]) retVal[0])[i] = new c.Minute(i * 60);
+                        i++;
+                    }
+                    return retVal;
+                } else if (typeName.equals("time")) {
                     retVal[0] = new Time[1000];
                     int i = 0;
                     while (i < 1000) {
@@ -138,15 +146,7 @@ public final class FlipMaker {
                 }
             }
             case Timestamp: {
-                if (typeName.equals("minute")) {
-                    retVal[0] = new c.Minute[1000];
-                    int i = 0;
-                    while (i < 1000) {
-                        ((c.Minute[]) retVal[0])[i] = new c.Minute(i * 60);
-                        i++;
-                    }
-                    return retVal;
-                } else if (typeName.equals("second")) {
+                if (typeName.equals("second")) {
                     retVal[0] = new c.Second[1000];
                     int i = 0;
                     while (i < 1000) {
@@ -154,9 +154,7 @@ public final class FlipMaker {
                         i++;
                     }
                     return retVal;
-                }
-
-                if (typeName.equals("timestamp")) {
+                } else if (typeName.equals("timestamp")) {
                     retVal[0] = new Timestamp[1000];
                     int i = 0;
                     while (i < 1000) {
@@ -233,10 +231,10 @@ public final class FlipMaker {
             case "date":
             case "month":
                 return new ArrowType.Date(DateUnit.MILLISECOND);
+            case "minute":
             case "time":
                 return new ArrowType.Time(TimeUnit.MILLISECOND, 32);
             case "hour":
-            case "minute":
             case "second":
             case "timestamp":
             case "timespan":
