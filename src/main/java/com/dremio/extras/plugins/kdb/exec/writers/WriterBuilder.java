@@ -86,7 +86,7 @@ public final class WriterBuilder {
             return new TimespanArrowWriter(field, vectorGetter, name, (c.Timespan[]) val, new ArrowType.PrimitiveType.Timestamp(TimeUnit.MILLISECOND, null));
         }
         if (val instanceof c.Minute[]) {
-            return new MinuteArrowWriter(field, vectorGetter, name, (c.Minute[]) val, new ArrowType.PrimitiveType.Timestamp(TimeUnit.MILLISECOND, null));
+            return new MinuteArrowWriter(field, vectorGetter, name, (c.Minute[]) val, new ArrowType.PrimitiveType.Time(TimeUnit.MILLISECOND, 32));
         }
         if (val instanceof c.Month[]) {
             return new MonthArrowWriter(field, vectorGetter, name, (c.Month[]) val, new ArrowType.PrimitiveType.Date(DateUnit.MILLISECOND));
