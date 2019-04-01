@@ -20,14 +20,16 @@
         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd"
         xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
     <modelVersion>4.0.0</modelVersion>
-    <parent>
-        <artifactId>dremio-plugin-parent</artifactId>
-        <groupId>com.dremio.plugin</groupId>
-        <version>3.1.7-201903210426240688-c843b51</version>
-    </parent>
 
-    <artifactId>dremio-extras-plugin-kdb</artifactId>
+    <groupId>com.dremio.plugin</groupId>
+    <artifactId>dremio-kdb-plugin</artifactId>
     <name>Plugins - Kdb Plugin</name>
+    <version>1.3</version>
+
+    <properties>
+        <dremio.version>3.1.7-201903210426240688-c843b51</dremio.version>
+    </properties>
+
     <build>
         <resources>
             <resource>
@@ -37,6 +39,76 @@
         </resources>
 
         <plugins>
+            <plugin>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <version>3.0</version>
+                <configuration>
+                    <source>1.8</source>
+                    <target>1.8</target>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <version>2.19.1</version>
+                <configuration>
+                    <includes>
+                        <include>com/dremio/extras/plugins/kdb/exec/**</include>
+                    </includes>
+                    <systemProperties>
+                        <property>
+                            <name>logback.log.dir</name>
+                            <value>${project.build.directory}/surefire-reports</value>
+                        </property>
+                    </systemProperties>
+                </configuration>
+            </plugin>
+            <plugin>
+                <artifactId>maven-resources-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>copy-java-sources</id>
+                        <phase>process-sources</phase>
+                        <goals>
+                            <goal>copy-resources</goal>
+                        </goals>
+                        <configuration>
+                            <outputDirectory>${project.build.outputDirectory}</outputDirectory>
+                            <resources>
+                                <resource>
+                                    <directory>${project.basedir}/src/main/java</directory>
+                                    <includes>
+                                        <include>com/dremio/exec/expr/fn/impl/**/*.java</include>
+                                    </includes>
+                                </resource>
+                            </resources>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <artifactId>maven-enforcer-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>avoid_bad_dependencies</id>
+                        <phase>verify</phase>
+                        <goals>
+                            <goal>enforce</goal>
+                        </goals>
+                        <configuration>
+                            <rules>
+                                <bannedDependencies>
+                                    <includes combine.children="append">
+                                        <!-- Needed by HBase test cluster -->
+                                        <include>javax.servlet:servlet-api:*:*:test</include>
+                                        <include>commons-logging:commons-logging:*:jar:provided</include>
+                                    </includes>
+                                </bannedDependencies>
+                            </rules>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-checkstyle-plugin</artifactId>
@@ -280,51 +352,79 @@ limitations under the License.
         <dependency>
             <groupId>com.dremio</groupId>
             <artifactId>dremio-common</artifactId>
+            <version>${dremio.version}</version>
         </dependency>
         <dependency>
             <groupId>com.dremio.sabot</groupId>
             <artifactId>dremio-sabot-kernel</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.calcite</groupId>
-            <artifactId>calcite-core</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>com.dremio.sabot</groupId>
-            <artifactId>dremio-sabot-kernel</artifactId>
-            <version>${project.version}</version>
-            <scope>test</scope>
-            <type>test-jar</type>
-        </dependency>
-        <dependency>
-            <groupId>com.dremio</groupId>
-            <artifactId>dremio-common</artifactId>
-            <version>${project.version}</version>
-            <scope>test</scope>
-            <type>test-jar</type>
+            <version>${dremio.version}</version>
+            <exclusions>
+                <exclusion>
+                    <artifactId>hadoop-common</artifactId>
+                    <groupId>org.apache.hadoop</groupId>
+                </exclusion>
+                <exclusion>
+                    <artifactId>hadoop-client</artifactId>
+                    <groupId>org.apache.hadoop</groupId>
+                </exclusion>
+            </exclusions>
         </dependency>
         <dependency>
             <groupId>com.dremio</groupId>
             <artifactId>dremio-common</artifactId>
             <classifier>tests</classifier>
             <scope>test</scope>
+            <version>${dremio.version}</version>
         </dependency>
         <dependency>
             <groupId>com.dremio.sabot</groupId>
             <artifactId>dremio-sabot-kernel</artifactId>
             <classifier>tests</classifier>
             <scope>test</scope>
+            <version>${dremio.version}</version>
+            <exclusions>
+                <exclusion>
+                    <groupId>org.slf4j</groupId>
+                    <artifactId>slf4j-log4j12</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
+
         <dependency>
-            <groupId>com.dremio.services</groupId>
-            <artifactId>dremio-services-namespace</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.calcite</groupId>
-            <artifactId>calcite-core</artifactId>
-            <classifier>tests</classifier>
+            <groupId>junit</groupId>
+            <artifactId>junit</artifactId>
+            <version>4.12</version>
             <scope>test</scope>
         </dependency>
     </dependencies>
 
+    <profiles>
+        <profile>
+            <id>largeTests</id>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-surefire-plugin</artifactId>
+                        <version>2.19.1</version>
+                        <configuration>
+                            <includes>
+                                <include>com/dremio/extras/plugins/kdb/**</include>
+                            </includes>
+                        </configuration>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+    </profiles>
+    <repositories>
+        <repository>
+            <id>dremio-public</id>
+            <url>http://maven.dremio.com/public/</url>
+        </repository>
+        <repository>
+            <id>dremio-free</id>
+            <url>http://maven.dremio.com/free/</url>
+        </repository>
+    </repositories>
 </project>
