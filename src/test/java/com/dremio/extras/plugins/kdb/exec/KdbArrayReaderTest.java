@@ -38,7 +38,7 @@ import com.google.common.collect.Maps;
 /**
  * test all arrow array types
  */
-public class KdbArrayReaderTest extends QControllerSimple {
+public class KdbArrayReaderTest {
 
     BufferAllocator allocator;
     Map<String, KdbRecordReader.VectorGetter> vectors = Maps.newHashMap();
