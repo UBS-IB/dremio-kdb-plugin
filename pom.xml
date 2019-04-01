@@ -331,6 +331,7 @@ limitations under the License.
             <plugin> <!-- generate sources from fmpp -->
                 <groupId>com.dremio.tools</groupId>
                 <artifactId>dremio-fmpp-maven-plugin</artifactId>
+                <version>${dremio.version}</version>
                 <executions>
                     <execution>
                         <id>generate-fmpp</id>
