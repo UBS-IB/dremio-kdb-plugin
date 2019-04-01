@@ -45,7 +45,7 @@ public class KdbTests extends QController {
 
     @Test
     public void testVector() throws Exception {
-        runKdbSQLVerifyCount("select * from kdb.md where sym in ('EURUSD','USDJPY') and bidCount = 5 ", 100);
+        runKdbSQLVerifyCount("select * from kdb.trade where sym in ('EURUSD','USDJPY') and price >= 5 ", 100);
     }
 
     @Test
@@ -54,14 +54,12 @@ public class KdbTests extends QController {
     }
 
     @Test
-    @Ignore
     public void testEmptySum() throws Exception {
-        runKdbSQLVerifyCount("select count(sym) from kdb.mor", 1);
+        runKdbSQLVerifyCount("select count(sym) from kdb.nbbo", 1);
     }
 
     @Test
-    @Ignore
     public void testDistinct() throws Exception {
-        runKdbSQLVerifyCount("select distinct sym from kdb.mor", 100);
+        runKdbSQLVerifyCount("select distinct sym from kdb.nbbo", 100);
     }
 }
