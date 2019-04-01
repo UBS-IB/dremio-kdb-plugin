@@ -1,4 +1,4 @@
-[![Build Status](https://travis-ci.org/UBS-IB/dremio-kdb-plugin.svg?branch=master)](https://travis-ci.org/dremio-hub/dremio-kdb-plugin)
+[![Build Status](https://travis-ci.org/UBS-IB/dremio-kdb-plugin.svg?branch=master)](https://travis-ci.org/UBS-IB/dremio-kdb-plugin)
 
 ## TODO
 
